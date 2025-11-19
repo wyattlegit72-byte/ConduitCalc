@@ -1,21 +1,77 @@
-// ContentView.swift - Main tab view
+// Views/OffsetCalculatorView.swift
 import SwiftUI
 
-struct ContentView: View {
+struct OffsetCalculatorView: View {
+    @State private var conduitSize = ConduitSize.one
+    @State private var conduitType = ConduitType.emt
+    @State private var offsetHeight: String = ""
+    @State private var bendAngle: Double = 30
+    
+    @State private var distanceBetweenBends = 0.0
+    @State private var totalShrink = 0.0
+    
     var body: some View {
-        TabView {
-            CalculatorView()
-                .tabItem { Label("Calculator", systemImage: "ruler") }
+        Form {
+            Section("Conduit") {
+                Picker("Type", selection: $conduitType) {
+                    ForEach(ConduitType.allCases) { type in
+                        Text(type.rawValue).tag(type)
+                    }
+                }
+                Picker("Size", selection: $conduitSize) {
+                    ForEach(ConduitSize.allCases) { size in
+                        Text(size.display).tag(size)
+                    }
+                }
+            }
             
-            SavedProjectsView()
-                .tabItem { Label("Projects", systemImage: "folder") }
+            Section("Offset") {
+                TextField("Offset Height (inches)", text: $offsetHeight)
+                    .keyboardType(.decimalPad)
+                
+                Picker("Bend Angle", selection: $bendAngle) {
+                    Text("10°").tag(10.0)
+                    Text("22.5°").tag(22.5)
+                    Text("30°").tag(30.0)
+                    Text("45°").tag(45.0)
+                    Text("60°").tag(60.0)
+                }
+                .pickerStyle(.segmented)
+            }
             
-            ReferenceView()
-                .tabItem { Label("Tables", systemImage: "book") }
-            
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
+            if let height = Double(offsetHeight), height > 0 {
+                Section("Results") {
+                    LabeledContent("Distance Between Marks") {
+                        Text("\(distanceBetweenBends, specifier: "%.3") inches")
+                            .font(.title2).bold().foregroundColor(.orange)
+                    }
+                    LabeledContent("Shrink Amount") {
+                        Text("\(totalShrink, specifier: "%.3") inches")
+                    }
+                    LabeledContent("Developed Length") {
+                        Text("\((height + totalShrink), specifier: "%.3") inches")
+                    }
+                }
+                .onChange(of: offsetHeight) { _ in calculate() }
+                .onChange(of: bendAngle) { _ in calculate() }
+            }
         }
-        .tint(.orange)
+        .navigationTitle("Offset Bender")
+        .onAppear { calculate() }
+    }
+    
+    private func calculate() {
+        guard let height = Double(offsetHeight), height > 0 else {
+            distanceBetweenBends = 0
+            totalShrink = 0
+            return
+        }
+        
+        let multiplier = conduitType.multiplier(for: bendAngle)
+        distanceBetweenBends = height * multiplier
+        
+        // Shrink = distance × (1 - cos(angle))
+        let angleRad = bendAngle * .pi / 180
+        totalShrink = distanceBetweenBends * (1 - cos(angleRad))
     }
 }
