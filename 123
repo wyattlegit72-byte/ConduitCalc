@@ -1,0 +1,21 @@
+// ContentView.swift - Main tab view
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        TabView {
+            CalculatorView()
+                .tabItem { Label("Calculator", systemImage: "ruler") }
+            
+            SavedProjectsView()
+                .tabItem { Label("Projects", systemImage: "folder") }
+            
+            ReferenceView()
+                .tabItem { Label("Tables", systemImage: "book") }
+            
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gear") }
+        }
+        .tint(.orange)
+    }
+}
